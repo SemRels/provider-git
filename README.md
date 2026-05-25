@@ -1,22 +1,14 @@
 # provider-git
 
-Local Git provider plugin for SemRel.
+Local Git subprocess plugin for SemRel.
 
-Provides commit, branch, and tag access from a local Git repository during SemRel execution.
-
-## Documentation
-
-- SemRel docs (planned): <https://github.com/SemRels/semrel/tree/main/docs/plugins/provider-git>
-- Plugin template: <https://github.com/SemRels/plugin-template>
-- Registry: <https://registry.semrel.io>
+The plugin runs after SemRel creates a release tag, then pushes the requested tag and branch to a configured remote with `git push`.
 
 ## Repository Layout
 
 ~~~text
 cmd/plugin/              Plugin entry point
-internal/plugin/         Business logic scaffold
-internal/grpc/           gRPC transport scaffold
-proto/v1                 Symlink to the SemRel protobuf contract
+internal/plugin/         Git subprocess client and configuration
 .github/workflows/       CI, release, and security automation
 ~~~
 
@@ -27,18 +19,9 @@ go build ./cmd/plugin
 go test ./...
 ~~~
 
-## Configuration Example
+## Runtime Environment
 
-~~~yaml
-plugins:
-  - name: provider-git
-    type: provider
-    config:
-      repository_path: .
-      release_branch: main
-      annotated_tags: true
-~~~
-
-## Status
-
-This repository is bootstrapped from SemRels/plugin-template and is ready for implementation.
+- `SEMREL_TAG_NAME` - tag to push
+- `SEMREL_BRANCH` - branch to update with `git push <remote> HEAD:<branch>`
+- `SEMREL_PLUGIN_REMOTE` - remote name, defaults to `origin`
+- `SEMREL_DRY_RUN` - when set to `true`, log the intended pushes without executing git
