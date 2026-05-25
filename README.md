@@ -1,42 +1,43 @@
 # provider-git
 
-Git provider plugin for Semantic Release.
+Local Git provider plugin for SemRel.
 
-Provides local Git repository integration for Semantic Release workflows.
+Provides commit, branch, and tag access from a local Git repository during SemRel execution.
 
 ## Documentation
 
-- Docs (coming soon): <https://github.com/SemRels/semrel/tree/main/docs/plugins/provider-git>
-- Template source: <https://github.com/SemRels/plugin-template>
+- SemRel docs (planned): <https://github.com/SemRels/semrel/tree/main/docs/plugins/provider-git>
+- Plugin template: <https://github.com/SemRels/plugin-template>
+- Registry: <https://registry.semrel.io>
 
 ## Repository Layout
 
-`	ext
+~~~text
 cmd/plugin/              Plugin entry point
 internal/plugin/         Business logic scaffold
 internal/grpc/           gRPC transport scaffold
 proto/v1                 Symlink to the SemRel protobuf contract
 .github/workflows/       CI, release, and security automation
-`
+~~~
 
 ## Development
 
-`ash
+~~~bash
 go build ./cmd/plugin
 go test ./...
-`
+~~~
 
 ## Configuration Example
 
-`yaml
+~~~yaml
 plugins:
   - name: provider-git
     type: provider
     config:
       repository_path: .
-      remote_name: origin
-      base_branch: main
-`
+      release_branch: main
+      annotated_tags: true
+~~~
 
 ## Status
 
