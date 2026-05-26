@@ -1,27 +1,47 @@
 # provider-git
 
-Local Git subprocess plugin for SemRel.
+Pushes the semrel tag and optional branch updates to a Git remote.
 
-The plugin runs after SemRel creates a release tag, then pushes the requested tag and branch to a configured remote with `git push`.
+This plugin is distributed as the standalone Go binary `semrel-plugin-provider-git`. Semrel executes the binary as a subprocess, provides plugin configuration through `SEMREL_PLUGIN_*` environment variables, provides release context through `SEMREL_*` environment variables, reads standard output, and treats exit code `0` as success and any non-zero exit code as failure. Install the binary in `~/.semrel/plugins/` or anywhere on your `$PATH`.
 
-## Repository Layout
+## Installation
 
-~~~text
-cmd/plugin/              Plugin entry point
-internal/plugin/         Git subprocess client and configuration
-.github/workflows/       CI, release, and security automation
-~~~
+```bash
+go install github.com/SemRels/provider-git/cmd/plugin@latest
+```
 
-## Development
+## Configuration
 
-~~~bash
-go build ./cmd/plugin
-go test ./...
-~~~
+```yaml
+plugins:
+  - name: provider-git
+    path: ~/.semrel/plugins/semrel-plugin-provider-git
+    env:
+      SEMREL_PLUGIN_REMOTE: "origin"
+      SEMREL_PLUGIN_SIGNING_KEY: "C:\\keys\\release-signing.asc"
+      SEMREL_PLUGIN_PUSH_BRANCH: "true"
+```
 
-## Runtime Environment
+## `SEMREL_PLUGIN_*` variables
 
-- `SEMREL_TAG_NAME` - tag to push
-- `SEMREL_BRANCH` - branch to update with `git push <remote> HEAD:<branch>`
-- `SEMREL_PLUGIN_REMOTE` - remote name, defaults to `origin`
-- `SEMREL_DRY_RUN` - when set to `true`, log the intended pushes without executing git
+| Name | Required | Description | Default |
+| --- | --- | --- | --- |
+| `SEMREL_PLUGIN_REMOTE` | Optional | Git remote name to push to. | origin |
+| `SEMREL_PLUGIN_SIGNING_KEY` | Optional | Path to a GPG key used when signing the tag. | None |
+| `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | false |
+
+## `SEMREL_*` release context used
+
+| Variable | Description |
+| --- | --- |
+| `SEMREL_TAG_NAME` | Git tag name semrel will create or publish. |
+| `SEMREL_BRANCH` | Git branch associated with the current release run. |
+| `SEMREL_DRY_RUN` | Whether semrel is running in dry-run mode. |
+
+## Example behavior
+
+The plugin pushes the release tag to the configured remote and can optionally push the branch as part of the same release transaction.
+
+## License
+
+Apache-2.0
