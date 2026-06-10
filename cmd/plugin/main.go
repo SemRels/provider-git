@@ -14,12 +14,15 @@ import (
 	semrelplugin "github.com/SemRels/provider-git/internal/plugin"
 )
 
+const pluginSchemaVersion = 1
+
 type gitClient interface {
 	PushTag(ctx context.Context, tagName, remote string) error
 	PushBranch(ctx context.Context, branch, remote string) error
 }
 
 func main() {
+	fmt.Fprintf(os.Stderr, "plugin_schema_version=%d\n", pluginSchemaVersion)
 	if err := run(context.Background(), os.Getenv, os.Stdout, semrelplugin.NewClient(semrelplugin.ConfigFromEnv(os.Getenv), semrelplugin.ExecRunner{})); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
