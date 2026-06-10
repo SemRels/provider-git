@@ -22,7 +22,7 @@ type gitClient interface {
 }
 
 func main() {
-	fmt.Fprintf(os.Stderr, "plugin_schema_version=%d\n", pluginSchemaVersion)
+	_, _ = fmt.Fprintf(os.Stderr, "plugin_schema_version=%d\n", pluginSchemaVersion)
 	if err := run(context.Background(), os.Getenv, os.Stdout, semrelplugin.NewClient(semrelplugin.ConfigFromEnv(os.Getenv), semrelplugin.ExecRunner{})); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
