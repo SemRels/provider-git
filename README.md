@@ -1,5 +1,7 @@
 # provider-git
 
+[![Latest Release](https://img.shields.io/github/v/release/SemRels/provider-git?label=version\&color=blue)](https://github.com/SemRels/provider-git/releases/latest)
+
 Pushes the semrel tag and optional branch updates to a Git remote.
 
 This plugin is distributed as the standalone Go binary `semrel-plugin-provider-git`. Semrel executes the binary as a subprocess, provides plugin configuration through `SEMREL_PLUGIN_*` environment variables, provides release context through `SEMREL_*` environment variables, reads standard output, and treats exit code `0` as success and any non-zero exit code as failure. Install the binary in `~/.semrel/plugins/` or anywhere on your `$PATH`.
