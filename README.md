@@ -1,6 +1,6 @@
 # provider-git
 
-[![Latest Release](https://img.shields.io/github/v/release/SemRels/provider-git?label=version\&color=blue)](https://github.com/SemRels/provider-git/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/SemRels/provider-git?label=version&color=blue)](https://github.com/SemRels/provider-git/releases/latest)
 
 Pushes the semrel tag and optional branch updates to a Git remote.
 
