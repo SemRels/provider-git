@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://registry.semrel.io/schemas/plugins/provider-git/v1.json",
+  "$id": "https://registry.semrel.io/schemas/plugins/git/v1.json",
   "title": "provider-git plugin configuration",
   "description": "Schema v1 for the provider-git semrel plugin. Configure via SEMREL_* environment variables.",
   "type": "object",
