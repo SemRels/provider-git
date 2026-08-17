@@ -10,9 +10,22 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
+	"time"
 )
 
 const defaultRemote = "origin"
+
+// execTextFileBusyRetries bounds how many times ExecRunner.Run retries a
+// command that fails immediately with ETXTBSY. This race is a well-known
+// Go/OS quirk (see golang/go#22315, golang/go#62221): a freshly written
+// executable can transiently report "text file busy" if it is exec'd before
+// the OS/filesystem (notably overlayfs, as used by GitHub Actions/Docker
+// runners) has finished committing the write. A short bounded retry with
+// backoff is the standard workaround recommended by the Go team.
+const execTextFileBusyRetries = 5
+
+const execTextFileBusyBackoff = 20 * time.Millisecond
 
 // Config controls how git push operations are executed.
 type Config struct {
@@ -30,12 +43,29 @@ type ExecRunner struct {
 }
 
 func (r ExecRunner) Run(ctx context.Context, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Dir = r.Dir
+	var (
+		output []byte
+		err    error
+	)
 
-	output, err := cmd.CombinedOutput()
-	if err == nil {
-		return nil
+	for attempt := 0; ; attempt++ {
+		cmd := exec.CommandContext(ctx, name, args...)
+		cmd.Dir = r.Dir
+
+		output, err = cmd.CombinedOutput()
+		if err == nil {
+			return nil
+		}
+
+		if !isTextFileBusy(err) || attempt >= execTextFileBusyRetries {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(execTextFileBusyBackoff):
+		}
 	}
 
 	command := strings.TrimSpace(strings.Join(append([]string{name}, args...), " "))
@@ -45,6 +75,15 @@ func (r ExecRunner) Run(ctx context.Context, name string, args ...string) error 
 	}
 
 	return fmt.Errorf("run %q: %w: %s", command, err, message)
+}
+
+// isTextFileBusy reports whether err is (or wraps) a syscall.ETXTBSY error,
+// which os/exec surfaces when a freshly written executable is launched
+// before the OS has released its write handle on the file.
+func isTextFileBusy(err error) bool {
+	var errno syscall.Errno
+
+	return errors.As(err, &errno) && errno == syscall.ETXTBSY
 }
 
 // Client pushes SemRel-generated refs to a configured git remote.
