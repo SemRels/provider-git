@@ -39,21 +39,23 @@ cosign verify ghcr.io/semrels/provider-git:latest \
 
 ```yaml
 plugins:
-  - name: provider-git
-    path: ~/.semrel/plugins/semrel-plugin-provider-git
-    env:
-      SEMREL_PLUGIN_REMOTE: "origin"
-      SEMREL_PLUGIN_SIGNING_KEY: "C:\\keys\\release-signing.asc"
-      SEMREL_PLUGIN_PUSH_BRANCH: "true"
+  - uses: "@semrel/provider-git"
+    phase: release
+    args:
+      remote: "origin"
+      signing_key: "C:\\keys\\release-signing.asc"
+      push_branch: "true"
 ```
 
-## `SEMREL_PLUGIN_*` variables
+## Options
 
-| Name | Required | Description | Default |
-| --- | --- | --- | --- |
-| `SEMREL_PLUGIN_REMOTE` | Optional | Git remote name to push to. | origin |
-| `SEMREL_PLUGIN_SIGNING_KEY` | Optional | Path to a GPG key used when signing the tag. | None |
-| `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | false |
+Every option can be set as an entry under `args` in `.semrel.yaml`. semrel passes each entry to the plugin as the environment variable shown in the table, so you can also set that variable directly (for example in your CI environment) instead of using `args`.
+
+| Argument | Environment variable | Required | Description | Default |
+| --- | --- | --- | --- | --- |
+| `remote` | `SEMREL_PLUGIN_REMOTE` | Optional | Git remote name to push to. | origin |
+| `signing_key` | `SEMREL_PLUGIN_SIGNING_KEY` | Optional | Path to a GPG key used when signing the tag. | None |
+| `push_branch` | `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | false |
 
 ## `SEMREL_*` release context used
 
