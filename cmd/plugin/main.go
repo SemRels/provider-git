@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	semrelplugin "github.com/SemRels/provider-git/internal/plugin"
@@ -55,19 +56,43 @@ func runWithStreams(ctx context.Context, getenv func(string) string, stdout, std
 	}
 
 	branch := strings.TrimSpace(getenv("SEMREL_BRANCH"))
-	if branch == "" {
+	pushBranch, err := parsePushBranch(getenv("SEMREL_PLUGIN_PUSH_BRANCH"))
+	if err != nil {
+		return err
+	}
+	if pushBranch && branch == "" {
 		return errors.New("SEMREL_BRANCH is required")
 	}
 
 	if strings.EqualFold(strings.TrimSpace(getenv("SEMREL_DRY_RUN")), "true") {
-		if !hasGitCredentials(getenv) {
-			_, _ = fmt.Fprintln(stderr, "[dry-run] provider-git: would need SEMREL_PLUGIN_TOKEN (or git credentials) to push")
-		}
-		_, _ = fmt.Fprintf(stderr, "[dry-run] provider-git: would create release %s on branch %s and push to %s\n", tagName, branch, config.Remote)
-		if _, err := fmt.Fprintf(stdout, "dry run: would push tag %s and branch %s to %s\n", tagName, branch, config.Remote); err != nil {
+		_, _ = fmt.Fprintf(stderr, "[dry-run] provider-git: verify Git credentials permit pushing to %s\n", config.Remote)
+		if _, err := fmt.Fprintf(stderr, "[dry-run] provider-git: would push tag %s to %s", tagName, config.Remote); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(stdout, "tag: %s\ntitle: %s\ntarget: %s (%s)\n", tagName, tagName, config.Remote, branch); err != nil {
+		if pushBranch {
+			if _, err := fmt.Fprintf(stderr, " and branch %s", branch); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(stderr); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(stdout, "dry run: would push tag %s to %s", tagName, config.Remote); err != nil {
+			return err
+		}
+		if pushBranch {
+			if _, err := fmt.Fprintf(stdout, " and branch %s", branch); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(stdout); err != nil {
+			return err
+		}
+		target := config.Remote
+		if pushBranch {
+			target += " (" + branch + ")"
+		}
+		if _, err := fmt.Fprintf(stdout, "tag: %s\ntitle: %s\ntarget: %s\n", tagName, tagName, target); err != nil {
 			return err
 		}
 		if changelog := getenv("SEMREL_CHANGELOG"); changelog != "" {
@@ -86,25 +111,25 @@ func runWithStreams(ctx context.Context, getenv func(string) string, stdout, std
 		return err
 	}
 
-	if _, err := fmt.Fprintf(stdout, "pushing branch %s to %s\n", branch, config.Remote); err != nil {
-		return err
+	if pushBranch {
+		if _, err := fmt.Fprintf(stdout, "pushing branch %s to %s\n", branch, config.Remote); err != nil {
+			return err
+		}
+		return client.PushBranch(ctx, branch, config.Remote)
 	}
 
-	return client.PushBranch(ctx, branch, config.Remote)
+	return nil
 }
 
-func hasGitCredentials(getenv func(string) string) bool {
-	for _, key := range []string{
-		"SEMREL_PLUGIN_TOKEN",
-		"GITHUB_TOKEN",
-		"GITLAB_TOKEN",
-		"GITEA_TOKEN",
-		"BITBUCKET_TOKEN",
-		"SSH_AUTH_SOCK",
-	} {
-		if strings.TrimSpace(getenv(key)) != "" {
-			return true
-		}
+func parsePushBranch(value string) (bool, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false, nil
 	}
-	return false
+
+	pushBranch, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("SEMREL_PLUGIN_PUSH_BRANCH must be a boolean, got %q", value)
+	}
+	return pushBranch, nil
 }

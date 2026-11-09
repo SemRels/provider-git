@@ -20,15 +20,31 @@ func TestRunPushesTagAndBranch(t *testing.T) {
 	stdout := &bytes.Buffer{}
 
 	err := run(context.Background(), mapEnv(map[string]string{
-		"SEMREL_TAG_NAME":      "v1.0.0",
-		"SEMREL_BRANCH":        "main",
-		"SEMREL_PLUGIN_REMOTE": "upstream",
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_BRANCH":             "main",
+		"SEMREL_PLUGIN_REMOTE":      "upstream",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "true",
 	}), stdout, client)
 
 	require.NoError(t, err)
 	require.Equal(t, []call{{kind: "tag", name: "v1.0.0", remote: "upstream"}, {kind: "branch", name: "main", remote: "upstream"}}, client.calls)
 	require.Contains(t, stdout.String(), "pushing tag v1.0.0 to upstream")
 	require.Contains(t, stdout.String(), "pushing branch main to upstream")
+}
+
+func TestRunPushesOnlyTagByDefault(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeClient{}
+	stdout := &bytes.Buffer{}
+
+	err := run(context.Background(), mapEnv(map[string]string{
+		"SEMREL_TAG_NAME": "v1.0.0",
+	}), stdout, client)
+
+	require.NoError(t, err)
+	require.Equal(t, []call{{kind: "tag", name: "v1.0.0", remote: "origin"}}, client.calls)
+	require.NotContains(t, stdout.String(), "pushing branch")
 }
 
 func TestRunSkipsPushesInDryRunMode(t *testing.T) {
@@ -47,13 +63,14 @@ func TestRunSkipsPushesInDryRunMode(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, client.calls)
-	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 and branch release to origin")
+	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 to origin")
+	require.NotContains(t, stdout.String(), "and branch release")
 	require.Contains(t, stdout.String(), "## 1.0.0\n- initial")
-	require.Contains(t, stderr.String(), "[dry-run] provider-git: would need SEMREL_PLUGIN_TOKEN")
-	require.Contains(t, stderr.String(), "[dry-run] provider-git: would create release v1.0.0")
+	require.Contains(t, stderr.String(), "verify Git credentials permit pushing to origin")
+	require.Contains(t, stderr.String(), "would push tag v1.0.0 to origin")
 }
 
-func TestRunDryRunWithCredentialsOmitsMissingTokenWarning(t *testing.T) {
+func TestRunDryRunBranchPushDoesNotExposeToken(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeClient{}
@@ -61,17 +78,17 @@ func TestRunDryRunWithCredentialsOmitsMissingTokenWarning(t *testing.T) {
 	stderr := &bytes.Buffer{}
 
 	err := runWithStreams(context.Background(), mapEnv(map[string]string{
-		"SEMREL_TAG_NAME":     "v1.0.0",
-		"SEMREL_BRANCH":       "main",
-		"SEMREL_PLUGIN_TOKEN": "secret-token",
-		"SEMREL_DRY_RUN":      "true",
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_BRANCH":             "main",
+		"SEMREL_PLUGIN_TOKEN":       "secret-token",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "true",
+		"SEMREL_DRY_RUN":            "true",
 	}), stdout, stderr, client)
 
 	require.NoError(t, err)
 	require.Empty(t, client.calls)
-	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 and branch main to origin")
-	require.NotContains(t, stderr.String(), "would need")
-	require.Contains(t, stderr.String(), "[dry-run] provider-git: would create release v1.0.0")
+	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 to origin and branch main")
+	require.Contains(t, stderr.String(), "would push tag v1.0.0 to origin and branch main")
 	require.NotContains(t, stdout.String(), "secret-token")
 	require.NotContains(t, stderr.String(), "secret-token")
 }
@@ -87,9 +104,23 @@ func TestRunRequiresTagName(t *testing.T) {
 func TestRunRequiresBranch(t *testing.T) {
 	t.Parallel()
 
-	err := run(context.Background(), mapEnv(map[string]string{"SEMREL_TAG_NAME": "v1.0.0"}), &bytes.Buffer{}, &fakeClient{})
+	err := run(context.Background(), mapEnv(map[string]string{
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "true",
+	}), &bytes.Buffer{}, &fakeClient{})
 
 	require.EqualError(t, err, "SEMREL_BRANCH is required")
+}
+
+func TestRunRejectsInvalidPushBranchValue(t *testing.T) {
+	t.Parallel()
+
+	err := run(context.Background(), mapEnv(map[string]string{
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "sometimes",
+	}), &bytes.Buffer{}, &fakeClient{})
+
+	require.EqualError(t, err, `SEMREL_PLUGIN_PUSH_BRANCH must be a boolean, got "sometimes"`)
 }
 
 func TestRunReturnsTagPushError(t *testing.T) {
@@ -111,8 +142,9 @@ func TestRunReturnsBranchPushError(t *testing.T) {
 	client := &fakeClient{branchErr: errors.New("branch push failed")}
 
 	err := run(context.Background(), mapEnv(map[string]string{
-		"SEMREL_TAG_NAME": "v1.0.0",
-		"SEMREL_BRANCH":   "main",
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_BRANCH":             "main",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "true",
 	}), &bytes.Buffer{}, client)
 
 	require.EqualError(t, err, "branch push failed")

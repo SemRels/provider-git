@@ -61,7 +61,11 @@ plugins:
 
 ## Example behavior
 
-The plugin pushes the release tag to the configured remote and can optionally push the branch as part of the same release transaction.
+The plugin pushes the release tag to the configured remote. It pushes the release branch only when `SEMREL_PLUGIN_PUSH_BRANCH` is `true`.
+
+When using a forge-specific provider such as `@semrel/provider-gitlab`, configure both plugins: `provider-git` pushes the local release tag and optionally the branch, while the forge provider creates the release entry. Keep `provider-git` first in the release phase so the forge provider sees the pushed tag.
+
+The plugin uses credentials already configured for the selected Git remote; `SEMREL_PLUGIN_TOKEN` is not used for Git authentication. In GitLab CI, you can keep the runner's existing `origin` URL and allow CI job-token pushes in the project settings, subject to the token user's branch permissions. This avoids rewriting the remote URL in the job script.
 
 ## License
 
