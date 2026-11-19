@@ -55,7 +55,7 @@ Every option can be set as an entry under `args` in `.semrel.yaml`. semrel passe
 | --- | --- | --- | --- | --- |
 | `remote` | `SEMREL_PLUGIN_REMOTE` | Optional | Git remote name to push to. | origin |
 | `signing_key` | `SEMREL_PLUGIN_SIGNING_KEY` | Optional | Path to a GPG key used when signing the tag. | None |
-| `push_branch` | `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | false |
+| `push_branch` | `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | true |
 
 ## `SEMREL_*` release context used
 
@@ -67,7 +67,11 @@ Every option can be set as an entry under `args` in `.semrel.yaml`. semrel passe
 
 ## Example behavior
 
-The plugin pushes the release tag to the configured remote and can optionally push the branch as part of the same release transaction.
+The plugin pushes the release tag and current branch to the configured remote by default. Set `SEMREL_PLUGIN_PUSH_BRANCH` to `false` to push only the tag.
+
+When using a forge-specific provider such as `@semrel/provider-gitlab`, configure both plugins: `provider-git` pushes the local release tag and optionally the branch, while the forge provider creates the release entry. Keep `provider-git` first in the release phase so the forge provider sees the pushed tag.
+
+The plugin uses credentials already configured for the selected Git remote; `SEMREL_PLUGIN_TOKEN` is not used for Git authentication. In GitLab CI, you can keep the runner's existing `origin` URL and allow CI job-token pushes in the project settings, subject to the token user's branch permissions. This avoids rewriting the remote URL in the job script.
 
 ## License
 
