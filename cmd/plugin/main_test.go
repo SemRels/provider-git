@@ -32,7 +32,7 @@ func TestRunPushesTagAndBranch(t *testing.T) {
 	require.Contains(t, stdout.String(), "pushing branch main to upstream")
 }
 
-func TestRunPushesOnlyTagByDefault(t *testing.T) {
+func TestRunPushesTagAndBranchByDefault(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeClient{}
@@ -40,11 +40,15 @@ func TestRunPushesOnlyTagByDefault(t *testing.T) {
 
 	err := run(context.Background(), mapEnv(map[string]string{
 		"SEMREL_TAG_NAME": "v1.0.0",
+		"SEMREL_BRANCH":   "main",
 	}), stdout, client)
 
 	require.NoError(t, err)
-	require.Equal(t, []call{{kind: "tag", name: "v1.0.0", remote: "origin"}}, client.calls)
-	require.NotContains(t, stdout.String(), "pushing branch")
+	require.Equal(t, []call{
+		{kind: "tag", name: "v1.0.0", remote: "origin"},
+		{kind: "branch", name: "main", remote: "origin"},
+	}, client.calls)
+	require.Contains(t, stdout.String(), "pushing branch main to origin")
 }
 
 func TestRunSkipsPushesInDryRunMode(t *testing.T) {
@@ -63,11 +67,28 @@ func TestRunSkipsPushesInDryRunMode(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, client.calls)
-	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 to origin")
-	require.NotContains(t, stdout.String(), "and branch release")
+	require.Contains(t, stdout.String(), "dry run: would push tag v1.0.0 to origin and branch release")
+	require.Contains(t, stderr.String(), "would push tag v1.0.0 to origin and branch release")
 	require.Contains(t, stdout.String(), "## 1.0.0\n- initial")
 	require.Contains(t, stderr.String(), "verify Git credentials permit pushing to origin")
-	require.Contains(t, stderr.String(), "would push tag v1.0.0 to origin")
+	require.Contains(t, stdout.String(), "target: origin (release)")
+}
+
+func TestRunDoesNotPushBranchWhenDisabled(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeClient{}
+	stdout := &bytes.Buffer{}
+
+	err := run(context.Background(), mapEnv(map[string]string{
+		"SEMREL_TAG_NAME":           "v1.0.0",
+		"SEMREL_BRANCH":             "main",
+		"SEMREL_PLUGIN_PUSH_BRANCH": "false",
+	}), stdout, client)
+
+	require.NoError(t, err)
+	require.Equal(t, []call{{kind: "tag", name: "v1.0.0", remote: "origin"}}, client.calls)
+	require.NotContains(t, stdout.String(), "pushing branch")
 }
 
 func TestRunDryRunBranchPushDoesNotExposeToken(t *testing.T) {

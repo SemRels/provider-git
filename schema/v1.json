@@ -27,7 +27,7 @@
         "1",
         "0"
       ],
-      "default": "false",
+      "default": "true",
       "description": "When true, push the current branch in addition to the release tag."
     },
     "SEMREL_REMOTE": {

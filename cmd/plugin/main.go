@@ -124,7 +124,7 @@ func runWithStreams(ctx context.Context, getenv func(string) string, stdout, std
 func parsePushBranch(value string) (bool, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return false, nil
+		return true, nil
 	}
 
 	pushBranch, err := strconv.ParseBool(value)

@@ -49,7 +49,7 @@ plugins:
 | --- | --- | --- | --- |
 | `SEMREL_PLUGIN_REMOTE` | Optional | Git remote name to push to. | origin |
 | `SEMREL_PLUGIN_SIGNING_KEY` | Optional | Path to a GPG key used when signing the tag. | None |
-| `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | false |
+| `SEMREL_PLUGIN_PUSH_BRANCH` | Optional | Push the current branch in addition to the tag. | true |
 
 ## `SEMREL_*` release context used
 
@@ -61,7 +61,7 @@ plugins:
 
 ## Example behavior
 
-The plugin pushes the release tag to the configured remote. It pushes the release branch only when `SEMREL_PLUGIN_PUSH_BRANCH` is `true`.
+The plugin pushes the release tag and current branch to the configured remote by default. Set `SEMREL_PLUGIN_PUSH_BRANCH` to `false` to push only the tag.
 
 When using a forge-specific provider such as `@semrel/provider-gitlab`, configure both plugins: `provider-git` pushes the local release tag and optionally the branch, while the forge provider creates the release entry. Keep `provider-git` first in the release phase so the forge provider sees the pushed tag.
 
