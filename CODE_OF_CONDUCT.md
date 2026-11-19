@@ -1,6 +1,6 @@
 # Code of Conduct
 
-provider-git is committed to providing a welcoming and harassment-free community.
+`provider-git` is committed to providing a welcoming and harassment-free community.
 
 ## Our Pledge
 
